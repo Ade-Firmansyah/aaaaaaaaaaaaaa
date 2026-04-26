@@ -16,19 +16,19 @@ let isIdle = false
 let inactivityTimer = null
 
 function sendHealthResponse(res) {
-  const isHealthy = botClient && botClient.info && botClient.info.wid
+  const waConnected = !!(botClient && botClient.info && botClient.info.wid)
   const payload = {
-    status: isHealthy ? 'healthy' : 'unhealthy',
+    status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     whatsapp: {
-      connected: !!(botClient && botClient.info),
+      connected: waConnected,
       user: botClient?.info?.pushname || null
     }
   }
 
-  res.writeHead(isHealthy ? 200 : 503, { 'Content-Type': 'application/json' })
+  res.writeHead(200, { 'Content-Type': 'application/json' })
   res.end(JSON.stringify(payload))
 }
 
