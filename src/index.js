@@ -16,18 +16,20 @@ let isIdle = false
 let inactivityTimer = null
 
 function sendHealthResponse(res) {
-  const waConnected = !!(botClient && botClient.info && botClient.info.wid)
+  const isConnected = botClient && botClient.info && botClient.info.wid
   const payload = {
-    status: 'ok',
+    status: 'ok', // Always return 200 for server health
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage(),
     whatsapp: {
-      connected: waConnected,
-      user: botClient?.info?.pushname || null
+      connected: isConnected,
+      user: botClient?.info?.pushname || null,
+      authenticated: !!(botClient && botClient.info && botClient.info.wid)
     }
   }
 
+  // Always return 200 when server is running (Railway requires this)
   res.writeHead(200, { 'Content-Type': 'application/json' })
   res.end(JSON.stringify(payload))
 }
