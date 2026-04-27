@@ -61,7 +61,3 @@ function enqueue(client, msg, handler) {
 module.exports = {
   enqueue
 }
-
-module.exports = {
-  enqueue
-}

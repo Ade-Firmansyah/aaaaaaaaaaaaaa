@@ -8,12 +8,13 @@ const resellerService = require('./service/reseller.service')
 const { logInfo, logError } = require('./utils/logger')
 
 const PORT = Number(process.env.PORT || 3000)
-const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000
 
 let botClient = null
 let isInitializing = false
-let isIdle = false
-let inactivityTimer = null
+
+// Offline mode logger - variable outside closure to prevent memory leak
+const timeUtils = require('./utils/time')
+let lastOfflineStatus = null
 
 // Global QR code storage
 global.currentQrCode = null
@@ -164,50 +165,14 @@ server.listen(PORT, () => {
   logInfo(`QR Code available at: http://localhost:${PORT}/qr`)
 })
 
-// Offline mode logger - log only when status changes
-let lastOfflineStatus = null
+// Offline mode logger - log only when status changes (no closure recreation)
 setInterval(() => {
-  const { isBotOffline, getTimeStatus } = require('./utils/time')
-  const offline = isBotOffline()
+  const offline = timeUtils.isBotOffline()
   if (lastOfflineStatus === null || offline !== lastOfflineStatus) {
-    console.log(`[OFFLINE MODE] ${getTimeStatus()}`)
+    console.log(`[OFFLINE MODE] ${timeUtils.getTimeStatus()}`)
     lastOfflineStatus = offline
   }
 }, 60000)
-
-function resetInactivityTimer() {
-  clearTimeout(inactivityTimer)
-  inactivityTimer = setTimeout(() => {
-    if (isIdle) return
-    logInfo('Entering idle mode due to inactivity')
-    isIdle = true
-    orderWatcher.stop()
-    stopStatusScheduler()
-  }, INACTIVITY_TIMEOUT_MS)
-}
-
-function wakeFromIdle() {
-  if (!isIdle) {
-    resetInactivityTimer()
-    return
-  }
-
-  isIdle = false
-  logInfo('Waking from idle mode')
-  if (botClient && botClient.info) {
-    orderWatcher.start(botClient)
-    startStatusScheduler(botClient)
-    resellerService.removeExpired(botClient)
-  }
-  resetInactivityTimer()
-}
-
-function markActivity() {
-  resetInactivityTimer()
-  if (isIdle) {
-    wakeFromIdle()
-  }
-}
 
 process.on('uncaughtException', error => {
   logError('Uncaught Exception', { error: error.message, stack: error.stack })
@@ -241,7 +206,6 @@ async function initializeBot() {
   botClient = createClient()
 
   botClient.on('message', async msg => {
-    markActivity()
     try {
       await handleIncomingMessage(botClient, msg)
     } catch (error) {
@@ -252,11 +216,9 @@ async function initializeBot() {
   botClient.on('ready', () => {
     logInfo('WhatsApp client ready')
     isInitializing = false
-    isIdle = false
     orderWatcher.start(botClient)
     startStatusScheduler(botClient)
     resellerService.removeExpired(botClient)
-    resetInactivityTimer()
   })
 
   botClient.initialize().catch(error => {
@@ -267,11 +229,9 @@ async function initializeBot() {
 }
 
 function scheduleRestart(delay = 5000) {
-  logInfo('Scheduling bot restart', { delay })
   stopStatusScheduler()
   orderWatcher.stop()
   isInitializing = false
-  isIdle = false
 
   setTimeout(() => {
     try {

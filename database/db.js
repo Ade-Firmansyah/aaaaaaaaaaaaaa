@@ -4,7 +4,7 @@ const path = require('path')
 const TRANSACTIONS_FILE = path.join(__dirname, 'transactions.json')
 let transactionCache = null
 let cacheTimestamp = 0
-const CACHE_TTL = 5000 // Cache for 5 seconds
+const CACHE_TTL = 60 * 1000 // Cache for 60 seconds (optimized from 5s)
 
 function readTransactionsWithCache() {
   const now = Date.now()
