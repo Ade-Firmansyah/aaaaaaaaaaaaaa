@@ -16,7 +16,10 @@ Bot sedang tidak aktif saat ini 🌙
 Jam operasional: 07:00 - 23:30
 
 ⏳ Silakan kembali lagi pagi nanti
-Terima kasih 🙏`
+Terima kasih 🙏
+
+💬 Jika butuh segera, hubungi admin langsung
+   Transaksi bisa dilakukan manual jika admin belum tidur`
 
 function isValidCommand(text) {
   const normalized = String(text).toLowerCase().trim()

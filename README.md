@@ -9,7 +9,7 @@ Bot WhatsApp otomatis untuk jual akun premium (auto stok, auto pembayaran, auto 
 ### 1. Clone / Download Project
 
 ```bash
-git clone https://github.com/digitalpanel2024-ai/wa-bot-premium.git
+git clone https://github.com/Ade-Firmansyah/aaaaaaaaaaaaaa.git
 cd wa-bot-premium
 ```
 
@@ -153,6 +153,9 @@ Jam operasional: 07:00 - 23:30
 
 ⏳ Silakan kembali lagi pagi nanti
 Terima kasih 🙏
+
+💬 Jika butuh segera, hubungi admin langsung
+   Transaksi bisa dilakukan manual jika admin belum tidur
 ```
 
 ### 🛡️ PROTECTION LAYER
