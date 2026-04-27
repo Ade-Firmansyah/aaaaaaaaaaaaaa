@@ -129,7 +129,46 @@ Buka link QR login di browser, scan QR code dengan WhatsApp untuk login.
 
 ---
 
-## 📱 CARA PENGGUNAAN BOT
+## ⏰ SCHEDULED OFFLINE MODE
+
+Bot otomatis **OFFLINE** setiap hari **23:30 - 07:00** (WIB)
+
+### ✅ FITUR OFFLINE
+
+* **Auto Blocking**: Semua transaksi (buy, cancel, status, gabung) ditolak
+* **Essential Commands**: ping, menu, help, admin tetap aktif
+* **User Feedback**: Pesan offline yang jelas dan informatif
+* **Service Protection**: API calls di-block di service layer
+* **Logging**: Monitor offline status setiap menit
+
+### 📱 OFFLINE RESPONSE
+
+```
+╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Bot sedang tidak aktif saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏
+```
+
+### 🛡️ PROTECTION LAYER
+
+1. **Message Handler**: Block transaction commands
+2. **Command Handlers**: Offline checks di setiap transaction handler
+3. **Service Layer**: Payment & Premku API calls di-block
+4. **Order Processing**: Fulfillment di-stop saat offline
+
+### 📊 MONITORING
+
+* Console log setiap menit: `[OFFLINE MODE] 09:22:37 (ONLINE)`
+* Block logging: `[BLOCKED] Buy command blocked during offline mode`
+* Health check: `/health` shows offline status
+
+---
 
 ### Command Yang Tersedia:
 
