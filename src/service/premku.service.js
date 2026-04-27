@@ -1,6 +1,7 @@
 const { retry } = require('../utils/retry')
 const { enqueue, dedupe } = require('../utils/request-queue')
 const { logInfo, logError } = require('../utils/logger')
+const { isBotOffline } = require('../utils/time')
 const BASE_URL = process.env.PREMIKU_API_BASE_URL || process.env.PAYMENT_API_BASE_URL || 'https://premku.com/api'
 const TIMEOUT_MS = 10000
 
@@ -48,6 +49,10 @@ async function getProducts(apiKey) {
 }
 
 async function createOrder(apiKey, productId, quantity, refId) {
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Premku order creation blocked during offline mode`)
+    throw new Error('BOT_OFFLINE')
+  }
   return enqueue(() => retry(() => fetchJson('/order', {
     api_key: apiKey,
     product_id: productId,
@@ -57,6 +62,10 @@ async function createOrder(apiKey, productId, quantity, refId) {
 }
 
 async function checkOrder(apiKey, invoice) {
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Premku order check blocked during offline mode`)
+    throw new Error('BOT_OFFLINE')
+  }
   return dedupe(`checkOrder:${invoice}`, () => enqueue(() => retry(() => fetchJson('/status', {
     api_key: apiKey,
     invoice

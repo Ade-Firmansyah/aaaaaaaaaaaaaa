@@ -1,6 +1,7 @@
 const { retry } = require('../utils/retry')
 const { enqueue, dedupe } = require('../utils/request-queue')
 const { logInfo, logError } = require('../utils/logger')
+const { isBotOffline } = require('../utils/time')
 const BASE_URL = process.env.PREMIKU_API_BASE_URL || process.env.PAYMENT_API_BASE_URL || 'https://premku.com/api'
 const TIMEOUT_MS = 10000
 
@@ -32,14 +33,26 @@ async function fetchJson(path, payload) {
 }
 
 async function createDeposit(apiKey, amount) {
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Payment creation blocked during offline mode`)
+    throw new Error('BOT_OFFLINE')
+  }
   return enqueue(() => retry(() => fetchJson('/pay', { api_key: apiKey, amount })))
 }
 
 async function checkDeposit(apiKey, invoice) {
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Payment check blocked during offline mode`)
+    throw new Error('BOT_OFFLINE')
+  }
   return dedupe(`checkDeposit:${invoice}`, () => retry(() => fetchJson('/pay_status', { api_key: apiKey, invoice })))
 }
 
 async function cancelDeposit(apiKey, invoice) {
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Payment cancel blocked during offline mode`)
+    throw new Error('BOT_OFFLINE')
+  }
   return enqueue(() => retry(() => fetchJson('/cancel_pay', { api_key: apiKey, invoice })))
 }
 

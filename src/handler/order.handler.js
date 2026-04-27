@@ -4,6 +4,7 @@ const premku = require('../service/premku.service')
 const db = require('../../database/db')
 const { logInfo, logError } = require('../utils/logger')
 const { formatCurrency } = require('../utils/format')
+const { isBotOffline } = require('../utils/time')
 
 let isProcessingOrders = false
 let isExpiringOrders = false
@@ -76,6 +77,12 @@ async function processPendingOrders(client) {
 }
 
 async function fulfillOrder(client, order) {
+  // Check offline mode
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Order fulfillment blocked during offline mode: ${order.invoice}`)
+    return
+  }
+
   const existing = db.getOrder(order.invoice)
   if (!existing || existing.status !== 'WAITING') {
     return

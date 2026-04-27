@@ -164,6 +164,13 @@ server.listen(PORT, () => {
   logInfo(`QR Code available at: http://localhost:${PORT}/qr`)
 })
 
+// Offline mode logger - runs every minute
+setInterval(() => {
+  const { isBotOffline, getTimeStatus } = require('./utils/time')
+  const offline = isBotOffline()
+  console.log(`[OFFLINE MODE] ${getTimeStatus()}`)
+}, 60000)
+
 function resetInactivityTimer() {
   clearTimeout(inactivityTimer)
   inactivityTimer = setTimeout(() => {

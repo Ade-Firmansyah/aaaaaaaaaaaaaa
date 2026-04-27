@@ -2,6 +2,7 @@ const { createRouter } = require('../utils/router')
 const { sanitizeText, formatCurrency, buildQrMedia, buildHeader } = require('../utils/format')
 const { getFinalPrice } = require('../utils/pricing')
 const { logInfo, logError } = require('../utils/logger')
+const { isBotOffline } = require('../utils/time')
 const premku = require('../service/premku.service')
 const payment = require('../service/payment.service')
 const resellerService = require('../service/reseller.service')
@@ -125,6 +126,20 @@ function parseId(args) {
 }
 
 async function buyHandler({ client, msg }, args) {
+  // Check offline mode
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Buy command blocked during offline mode`)
+    return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Transaksi tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+  }
+
   const productId = parseId(args)
   if (!productId) {
     return client.sendMessage(msg.from, '❌ Format salah. Gunakan: *BUY 1* atau *BUY1*')
@@ -190,11 +205,39 @@ async function buyHandler({ client, msg }, args) {
     )
   } catch (error) {
     logError('Buy handler failed', error)
+
+    // Handle offline mode errors
+    if (error.message === 'BOT_OFFLINE') {
+      return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Transaksi tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+    }
+
     return client.sendMessage(msg.from, `❌ Gagal membuat pembayaran: ${error.message}`)
   }
 }
 
 async function cancelHandler({ client, msg }, args) {
+  // Check offline mode
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Cancel command blocked during offline mode`)
+    return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Transaksi tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+  }
+
   const invoice = args[0] ? args[0].toString().trim().toUpperCase() : null
   if (!invoice || !invoice.startsWith('INV-')) {
     return client.sendMessage(msg.from, '❌ Format cancel salah. Gunakan: *cancel INV-123456789*')
@@ -221,11 +264,39 @@ async function cancelHandler({ client, msg }, args) {
     return client.sendMessage(msg.from, `✅ Pesanan ${invoice} berhasil dibatalkan.`)
   } catch (error) {
     logError('Cancel handler failed', error)
+
+    // Handle offline mode errors
+    if (error.message === 'BOT_OFFLINE') {
+      return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Pembatalan tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+    }
+
     return client.sendMessage(msg.from, `❌ Gagal membatalkan pesanan: ${error.message}`)
   }
 }
 
 async function statusHandler({ client, msg }, args) {
+  // Check offline mode
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Status command blocked during offline mode`)
+    return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Cek status tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+  }
+
   const invoice = args[0] ? args[0].toString().trim().toUpperCase() : null
   if (!invoice || !invoice.startsWith('INV-')) {
     return client.sendMessage(msg.from, '❌ Format status salah. Gunakan: *status INV-123456789*')
@@ -291,6 +362,20 @@ async function testPayHandler({ client, msg }, args) {
 }
 
 async function gabungHandler({ client, msg }, args) {
+  // Check offline mode
+  if (isBotOffline()) {
+    console.log(`[BLOCKED] Gabung (reseller) command blocked during offline mode`)
+    return client.sendMessage(msg.from, `╔═════════════════════════════╗
+║   ⚠️ BOT SEDANG OFFLINE      ║
+╚═════════════════════════════╝
+
+Pendaftaran reseller tidak dapat diproses saat ini 🌙
+Jam operasional: 07:00 - 23:30
+
+⏳ Silakan kembali lagi pagi nanti
+Terima kasih 🙏`)
+  }
+
   const pilihan = args[0]
   const user = msg.from
 
