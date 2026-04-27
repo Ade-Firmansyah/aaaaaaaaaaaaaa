@@ -334,7 +334,7 @@ async function expireOldOrders(client) {
   }
 }
 
-const WATCH_INTERVAL_MS = 15 * 1000
+const WATCH_INTERVAL_MS = 30 * 1000
 const EXPIRATION_CHECK_MS = 90 * 1000
 const STUCK_CHECK_MS = 5 * 60 * 1000
 
