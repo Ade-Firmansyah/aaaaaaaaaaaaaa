@@ -92,6 +92,98 @@ Scan QR → selesai ✅
 
 ---
 
+## 🚂 DEPLOY KE RAILWAY
+
+### 1. Fork Repository
+
+Fork repository ini ke akun GitHub kamu.
+
+### 2. Connect ke Railway
+
+1. Buka [Railway.app](https://railway.app)
+2. Login dengan GitHub
+3. Klik "New Project"
+4. Pilih "Deploy from GitHub repo"
+5. Cari dan pilih repository yang sudah di-fork
+
+### 3. Setup Environment Variables
+
+Di Railway dashboard, pergi ke "Variables" dan tambahkan:
+
+```
+API_KEY=ISI_API_PREMKU_KAMU
+```
+
+### 4. Deploy
+
+Klik "Deploy" dan tunggu proses selesai.
+
+### 5. Setup WhatsApp Login
+
+Setelah deploy selesai, akses domain Railway kamu:
+
+- **Health Check**: `https://your-app.railway.app/health`
+- **QR Code Login**: `https://your-app.railway.app/qr` atau `https://your-app.railway.app/`
+
+Buka link QR login di browser, scan QR code dengan WhatsApp untuk login.
+
+---
+
+## 📱 CARA PENGGUNAAN BOT
+
+### Command Yang Tersedia:
+
+- `menu` atau `help` - Tampilkan menu
+- `stok` - Lihat daftar produk
+- `buy <id>` - Beli produk (contoh: `buy 1`)
+- `status <invoice>` - Cek status pembayaran
+- `cancel <invoice>` - Batalkan pembayaran
+
+### Contoh Penggunaan:
+
+```
+stok
+buy 1
+status INV-123456789
+```
+
+---
+
+## 🔧 TROUBLESHOOTING
+
+### API Key Tidak Ditemukan
+
+Pastikan environment variable `API_KEY` sudah di-set dengan benar di Railway.
+
+### Bot Tidak Merespons
+
+1. Cek apakah bot sudah login WhatsApp via `/qr`
+2. Pastikan command yang dikirim sesuai format
+3. Cek logs di Railway dashboard
+
+### QR Code Tidak Muncul
+
+1. Bot mungkin sudah terautentikasi
+2. Restart aplikasi di Railway
+3. Cek logs untuk error
+
+---
+
+## 📊 MONITORING
+
+- **Health Check**: `https://your-app.railway.app/health`
+- **Logs**: Cek di Railway dashboard
+- **Status**: Bot akan memberikan feedback otomatis
+
+---
+
+## ⚠️ CATATAN PENTING
+
+- Bot menggunakan mode "senior" - hanya merespons command yang valid
+- Pastikan API key Premku valid dan memiliki saldo
+- Bot akan otomatis mengirim akun setelah pembayaran berhasil
+- Gunakan command yang benar sesuai format di atas
+
 ## 📌 COMMAND USER
 
 * `ping / p / cek` → test bot
