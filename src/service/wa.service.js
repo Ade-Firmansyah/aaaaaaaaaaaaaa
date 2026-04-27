@@ -68,12 +68,24 @@ function createClient() {
   })
 
   client.on('qr', qr => {
-    logInfo('QR code generated for login')
+    // Store QR code for HTTP serving
+    global.currentQrCode = qr
+    logInfo('QR code generated for login - Available at /qr endpoint')
     qrcode.generate(qr, { small: true })
+
+    // Clear QR code after 60 seconds (QR codes expire)
+    setTimeout(() => {
+      if (global.currentQrCode === qr) {
+        global.currentQrCode = null
+        logInfo('QR code expired and cleared')
+      }
+    }, 60000)
   })
 
   client.on('ready', () => {
-    logInfo('WhatsApp client ready')
+    // Clear QR code when authenticated
+    global.currentQrCode = null
+    logInfo('WhatsApp client ready - QR code cleared')
   })
 
   client.on('auth_failure', msg => {
