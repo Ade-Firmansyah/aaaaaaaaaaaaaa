@@ -35,6 +35,36 @@ function detectChromium() {
   return undefined
 }
 
+function ensureSessionPath() {
+  if (!fs.existsSync(SESSION_PATH)) {
+    fs.mkdirSync(SESSION_PATH, { recursive: true })
+  }
+}
+
+function detectChromium() {
+  if (process.env.CHROMIUM_PATH) {
+    return process.env.CHROMIUM_PATH
+  }
+
+  const candidates = [
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome'
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      fs.accessSync(candidate, fs.constants.X_OK)
+      return candidate
+    } catch (_) {
+      continue
+    }
+  }
+
+  return undefined
+}
+
 function createClient() {
   ensureSessionPath()
 
@@ -55,8 +85,19 @@ function createClient() {
         '--no-first-run',
         '--no-zygote',
         '--disable-dev-tools',
-        '--disable-software-rasterizer'
-      ]
+        '--disable-software-rasterizer',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--max_old_space_size=4096'
+      ],
+      ignoreDefaultArgs: ['--disable-extensions']
+    },
+    webVersionCache: {
+      type: 'remote',
+      remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2412.54.html'
     }
   })
 
@@ -83,6 +124,7 @@ function createClient() {
 
   client.on('auth_failure', msg => {
     logError('WhatsApp authentication failure', { message: msg })
+    // Don't auto-restart on auth failure
   })
 
   client.on('disconnected', reason => {
@@ -90,10 +132,12 @@ function createClient() {
       logInfo('WhatsApp session logged out')
     } else {
       logError('WhatsApp disconnected unexpectedly', { reason })
-      setTimeout(() => {
-        client.initialize().catch(err => logError('WhatsApp reconnect error', err))
-      }, 5000)
+      // Let the main index.js handle reconnection
     }
+  })
+
+  client.on('loading_screen', (percent, message) => {
+    logInfo('WhatsApp loading', { percent, message })
   })
 
   return client
