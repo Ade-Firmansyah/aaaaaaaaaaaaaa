@@ -14,7 +14,6 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.5",
     "axios": "^1.15.0",
     "dayjs": "^1.11.20",
     "dotenv": "^17.4.2",
