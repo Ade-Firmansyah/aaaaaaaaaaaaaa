@@ -8,7 +8,7 @@ const {
   getCurrentJakartaTime
 } = require('../utils/time')
 
-const ALLOWED_COMMANDS = ['menu', 'help', 'stok', 'stock', 'buy', 'admin', 'ping', 'p', 'cek', 'cancel', 'testpay', 'reseller', 'gabung', 'website', 'halo', 'test', 'assalamualaikum']
+const ALLOWED_COMMANDS = ['menu', 'help', 'stok', 'stock', 'buy', 'admin', 'ping', 'p', 'cek', 'cancel', 'status', 'testpay', 'reseller', 'gabung', 'website', 'halo', 'test', 'assalamualaikum']
 
 // Commands allowed during offline mode
 const OFFLINE_ALLOWED_COMMANDS = ['ping', 'p', 'cek', 'menu', 'help', 'admin']
