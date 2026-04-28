@@ -1,4 +1,6 @@
 const http = require('http')
+const fs = require('fs')
+const path = require('path')
 const { createClient } = require('./service/wa.service')
 const { handleIncomingMessage } = require('./handler/message.handler')
 const { orderWatcher } = require('./handler/order.handler')
@@ -8,9 +10,11 @@ const resellerService = require('./service/reseller.service')
 const { logInfo, logError } = require('./utils/logger')
 
 const PORT = Number(process.env.PORT || 3000)
+const LOCK_FILE = path.join(process.cwd(), 'bot.lock')
 
 let botClient = null
 let isInitializing = false
+let isStarting = false
 
 // Offline mode logger - variable outside closure to prevent memory leak
 const timeUtils = require('./utils/time')
@@ -18,6 +22,64 @@ let lastOfflineStatus = null
 
 // Global QR code storage
 global.currentQrCode = null
+
+// Single instance protection
+function checkLockFile() {
+  if (fs.existsSync(LOCK_FILE)) {
+    console.log("⚠️ Bot already running (lock detected)")
+    process.exit(1)
+  }
+
+  try {
+    fs.writeFileSync(LOCK_FILE, `locked-${Date.now()}-${process.pid}`)
+    console.log("🔒 Bot lock file created")
+  } catch (error) {
+    console.error("❌ Failed to create lock file:", error.message)
+    process.exit(1)
+  }
+}
+
+function removeLockFile() {
+  try {
+    if (fs.existsSync(LOCK_FILE)) {
+      fs.unlinkSync(LOCK_FILE)
+      console.log("🔓 Bot lock file removed")
+    }
+  } catch (error) {
+    console.error("❌ Failed to remove lock file:", error.message)
+  }
+}
+
+// Global error handling
+process.on('uncaughtException', error => {
+  logError('Uncaught Exception', { error: error.message, stack: error.stack })
+  setTimeout(() => scheduleRestart(), 3000)
+})
+
+process.on('unhandledRejection', reason => {
+  logError('Unhandled Rejection', { reason: reason?.message || reason })
+})
+
+process.on('warning', () => {})
+
+// Cleanup on exit
+process.on('exit', () => {
+  removeLockFile()
+  stopStatusScheduler()
+  orderWatcher.stop()
+})
+
+process.on('SIGINT', () => {
+  console.log("\n🛑 Received SIGINT, shutting down gracefully...")
+  removeLockFile()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  console.log("\n🛑 Received SIGTERM, shutting down gracefully...")
+  removeLockFile()
+  process.exit(0)
+})
 
 function sendHealthResponse(res) {
   const isConnected = botClient && botClient.info && botClient.info.wid
@@ -160,10 +222,22 @@ const server = http.createServer((req, res) => {
   res.end('Not found')
 })
 
-server.listen(PORT, () => {
-  logInfo(`Health check server running on port ${PORT}`)
-  logInfo(`QR Code available at: http://localhost:${PORT}/qr`)
-})
+// Safe server startup with port conflict handling
+function startServer() {
+  server.listen(PORT, () => {
+    logInfo(`Health check server running on port ${PORT}`)
+    logInfo(`QR Code available at: http://localhost:${PORT}/qr`)
+  })
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`⚠️ Port ${PORT} already in use, skipping web server...`)
+      console.log("ℹ️ Bot will continue without HTTP server (normal for Railway)")
+    } else {
+      logError('Server error', { error: err.message, code: err.code })
+    }
+  })
+}
 
 // Offline mode logger - log only when status changes (no closure recreation)
 setInterval(() => {
@@ -174,16 +248,34 @@ setInterval(() => {
   }
 }, 60000)
 
-process.on('uncaughtException', error => {
-  logError('Uncaught Exception', { error: error.message, stack: error.stack })
-  setTimeout(() => scheduleRestart(), 3000)
-})
+// Single instance protection and main startup
+async function startBot() {
+  if (isStarting) {
+    console.log("⚠️ Bot already starting, skip...")
+    return
+  }
 
-process.on('unhandledRejection', reason => {
-  logError('Unhandled Rejection', { reason: reason?.message || reason })
-})
+  isStarting = true
 
-process.on('warning', () => {})
+  try {
+    console.log("🚀 Starting bot...")
+
+    // Check lock file first
+    checkLockFile()
+
+    // Start HTTP server (safe)
+    startServer()
+
+    // Initialize bot
+    await initializeBot()
+
+  } catch (err) {
+    console.error("❌ Error starting bot:", err)
+    removeLockFile()
+  } finally {
+    isStarting = false
+  }
+}
 
 async function initializeBot() {
   if (isInitializing) {
@@ -221,14 +313,33 @@ async function initializeBot() {
     resellerService.removeExpired(botClient)
   })
 
-  botClient.initialize().catch(error => {
+  botClient.on('disconnected', async (reason) => {
+    logInfo('WhatsApp disconnected', { reason })
+
+    // Only restart if not manually stopped
+    if (reason !== 'LOGOUT' && !isInitializing) {
+      setTimeout(() => {
+        logInfo('Attempting to restart WhatsApp client...')
+        initializeBot()
+      }, 5000)
+    }
+  })
+
+  try {
+    await botClient.initialize()
+  } catch (error) {
     logError('Failed to initialize WhatsApp client', error)
     isInitializing = false
-    scheduleRestart()
-  })
+    // Don't auto-restart on initialization failure
+  }
 }
 
 function scheduleRestart(delay = 5000) {
+  if (isInitializing) {
+    logInfo('Restart already scheduled')
+    return
+  }
+
   stopStatusScheduler()
   orderWatcher.stop()
   isInitializing = false
@@ -238,9 +349,27 @@ function scheduleRestart(delay = 5000) {
       initializeBot()
     } catch (error) {
       logError('Restart failed', { error: error.message })
-      scheduleRestart(delay)
+      // Don't recursively schedule restart on failure
     }
   }, delay)
 }
 
-initializeBot()
+// Clean session reset function
+function safeResetSession() {
+  console.log("⚠️ Resetting session manually...")
+  try {
+    const sessionPath = path.join(process.cwd(), 'sessions')
+    if (fs.existsSync(sessionPath)) {
+      fs.rmSync(sessionPath, { recursive: true, force: true })
+      console.log("✅ Session data cleared")
+    }
+  } catch (error) {
+    console.error("❌ Failed to reset session:", error.message)
+  }
+}
+
+// Export for manual session reset if needed
+global.safeResetSession = safeResetSession
+
+// Start bot once
+startBot()
