@@ -1,27 +1,35 @@
 const { enqueue } = require('../utils/queue')
 const { handleCommand } = require('./command.handler')
-const { logInfo } = require('../utils/logger')
-const { isBotOffline, getTimeStatus } = require('../utils/time')
+const logger = require('../utils/logger')
+const {
+  isBotOffline,
+  getTimeStatus,
+  getOfflineMessage,
+  getCurrentJakartaTime
+} = require('../utils/time')
 
 const ALLOWED_COMMANDS = ['menu', 'help', 'stok', 'stock', 'buy', 'admin', 'ping', 'p', 'cek', 'cancel', 'testpay', 'reseller', 'gabung', 'website', 'halo', 'test', 'assalamualaikum']
 
 // Commands allowed during offline mode
 const OFFLINE_ALLOWED_COMMANDS = ['ping', 'p', 'cek', 'menu', 'help', 'admin']
 
-const OFFLINE_MESSAGE = `╔═════════════════════════════╗
-║   ⚠️ BOT SEDANG OFFLINE      ║
-╚═════════════════════════════╝
+const lastOfflineReply = {}
 
-Bot sedang tidak aktif saat ini 🌙
-Jam operasional: 07:00 - 23:30
+function canSendOfflineReply(userId) {
+  const now = Date.now()
 
-⏳ Silakan kembali lagi pagi nanti
+  if (!lastOfflineReply[userId]) {
+    lastOfflineReply[userId] = now
+    return true
+  }
 
-💬 Jika butuh transaksi urgent:
-Hubungi admin langsung jika admin belum tidur
-Transaksi bisa dilakukan manual
+  if (now - lastOfflineReply[userId] > 300000) {
+    lastOfflineReply[userId] = now
+    return true
+  }
 
-Terima kasih 🙏`
+  return false
+}
 
 function isValidCommand(text) {
   const normalized = String(text).toLowerCase().trim()
@@ -46,6 +54,10 @@ async function handleIncomingMessage(client, msg) {
 
   // Check if bot is offline
   const offline = isBotOffline()
+  logger.info('time_check', {
+    time: getCurrentJakartaTime(),
+    online: !offline
+  })
 
   if (offline) {
     console.log(`[OFFLINE MODE] ${getTimeStatus()} - Message from ${from}: ${text}`)
@@ -53,11 +65,15 @@ async function handleIncomingMessage(client, msg) {
     // Allow only specific commands during offline
     if (!isOfflineAllowedCommand(text)) {
       console.log(`[BLOCKED] Transaction command blocked during offline: ${text}`)
-      return client.sendMessage(from, OFFLINE_MESSAGE)
+      if (canSendOfflineReply(from)) {
+        logger.info('offline_reply_sent', { from, time: getCurrentJakartaTime() })
+        return client.sendMessage(from, { text: getOfflineMessage() })
+      }
+      return
     }
 
     // Allow offline-allowed commands to proceed
-    logInfo('Received offline-allowed command', { from, body: text })
+    logger.info('Received offline-allowed command', { from, body: text })
     return enqueue(client, msg, handleCommand)
   }
 
@@ -66,7 +82,7 @@ async function handleIncomingMessage(client, msg) {
     return
   }
 
-  logInfo('Received command', { from, body: text })
+  logger.info('Received command', { from, body: text })
   enqueue(client, msg, handleCommand)
 }
 

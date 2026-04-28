@@ -9,7 +9,7 @@ function formatPrefix(level) {
 
 function logInfo(message, meta) {
   if (isProduction && !isDebug) {
-    const allowed = ['ready', 'started', 'healthy', 'idle', 'waking', 'connected']
+    const allowed = ['ready', 'started', 'healthy', 'idle', 'waking', 'connected', 'time_check', 'offline_reply_sent']
     if (!allowed.some(keyword => message.toLowerCase().includes(keyword))) {
       return
     }
@@ -41,6 +41,7 @@ function logRetry(message, meta) {
 
 module.exports = {
   logInfo,
+  info: logInfo,
   logError,
   logRetry
 }
